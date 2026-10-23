@@ -157,7 +157,7 @@ func TestAllowInsecureBaseURLReachesHTTPLayer(t *testing.T) {
 	rejecting.mu.Lock()
 	rejecting.client = redirectingClient
 	rejecting.mu.Unlock()
-	if _, err := rejecting.GET("/12345", nil, "test-access-token"); err == nil ||
+	if _, err := rejecting.GET(context.Background(), "/12345", nil, "test-access-token"); err == nil ||
 		!strings.Contains(err.Error(), "invalid BaseURL") {
 		t.Fatalf("expected the request to be rejected for an insecure BaseURL, got %v", err)
 	}
@@ -617,5 +617,48 @@ func TestConfigHTTPClientNilKeepsDefaults(t *testing.T) {
 	}
 	if got := client.getState().http.client.Timeout; got != 7*time.Second {
 		t.Errorf("Timeout = %v, want 7s", got)
+	}
+}
+
+type ctxKey struct{}
+
+func TestRequestsCarryTheCallerContext(t *testing.T) {
+	transport := &recordingTransport{body: `{"id":"12345","username":"testuser"}`}
+	config := baseTestConfig()
+	config.HTTPClient = &http.Client{Transport: transport}
+	client, err := NewClient(config)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	if err := client.SetTokenInfo(&TokenInfo{
+		AccessToken: "test-access-token",
+		TokenType:   TokenTypeBearer,
+		ExpiresAt:   time.Now().Add(24 * time.Hour),
+		UserID:      "12345",
+		CreatedAt:   time.Now(),
+	}); err != nil {
+		t.Fatalf("SetTokenInfo: %v", err)
+	}
+
+	ctx := context.WithValue(context.Background(), ctxKey{}, "caller")
+	if _, err := client.GetMe(ctx); err != nil {
+		t.Fatalf("GetMe: %v", err)
+	}
+	transport.mu.Lock()
+	transport.body = `{"access_token":"new-token","token_type":"bearer","expires_in":3600}`
+	transport.mu.Unlock()
+	if err := client.RefreshToken(ctx); err != nil {
+		t.Fatalf("RefreshToken: %v", err)
+	}
+
+	transport.mu.Lock()
+	defer transport.mu.Unlock()
+	if len(transport.requests) != 2 {
+		t.Fatalf("transport saw %d requests, want 2", len(transport.requests))
+	}
+	for _, req := range transport.requests {
+		if got := req.Context().Value(ctxKey{}); got != "caller" {
+			t.Errorf("request %s carries context value %v, want caller", req.URL.Path, got)
+		}
 	}
 }

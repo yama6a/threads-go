@@ -139,7 +139,7 @@ func TestHTTPClient_PUT(t *testing.T) {
 		MaxRetries: 0, InitialDelay: time.Second, MaxDelay: time.Second, BackoffFactor: 1.0,
 	})
 
-	resp, err := httpClient.PUT("/test", url.Values{"key": {"value"}}, "token")
+	resp, err := httpClient.PUT(context.Background(), "/test", url.Values{"key": {"value"}}, "token")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestHTTPClient_DELETE(t *testing.T) {
 		MaxRetries: 0, InitialDelay: time.Second, MaxDelay: time.Second, BackoffFactor: 1.0,
 	})
 
-	resp, err := httpClient.DELETE("/test", "token")
+	resp, err := httpClient.DELETE(context.Background(), "/test", "token")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestHTTPClient_POST_URLValues(t *testing.T) {
 		MaxRetries: 0, InitialDelay: time.Second, MaxDelay: time.Second, BackoffFactor: 1.0,
 	})
 
-	_, err := httpClient.POST("/test", url.Values{"key": {"val"}}, "token")
+	_, err := httpClient.POST(context.Background(), "/test", url.Values{"key": {"val"}}, "token")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -209,7 +209,7 @@ func TestHTTPClient_POST_JSONBody(t *testing.T) {
 	})
 
 	// Passing a struct should be JSON-encoded
-	_, err := httpClient.POST("/test", map[string]string{"key": "value"}, "token")
+	_, err := httpClient.POST(context.Background(), "/test", map[string]string{"key": "value"}, "token")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -229,7 +229,7 @@ func TestHTTPClient_POST_StringBody(t *testing.T) {
 		MaxRetries: 0, InitialDelay: time.Second, MaxDelay: time.Second, BackoffFactor: 1.0,
 	})
 
-	_, err := httpClient.POST("/test", "hello body", "token")
+	_, err := httpClient.POST(context.Background(), "/test", "hello body", "token")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -249,7 +249,7 @@ func TestHTTPClient_POST_ByteBody(t *testing.T) {
 		MaxRetries: 0, InitialDelay: time.Second, MaxDelay: time.Second, BackoffFactor: 1.0,
 	})
 
-	_, err := httpClient.POST("/test", []byte("binary data"), "token")
+	_, err := httpClient.POST(context.Background(), "/test", []byte("binary data"), "token")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -326,7 +326,7 @@ func TestHTTPClient_ResponseBodyLimit(t *testing.T) {
 		httpClient.maxResponseBodySize = 8
 		httpClient.mu.Unlock()
 
-		resp, err := httpClient.GET("/test", nil, "token")
+		resp, err := httpClient.GET(context.Background(), "/test", nil, "token")
 		if err != nil {
 			t.Fatalf("expected response at limit to succeed: %v", err)
 		}
@@ -347,7 +347,7 @@ func TestHTTPClient_ResponseBodyLimit(t *testing.T) {
 		httpClient.maxResponseBodySize = 8
 		httpClient.mu.Unlock()
 
-		resp, err := httpClient.GET("/test", nil, "token")
+		resp, err := httpClient.GET(context.Background(), "/test", nil, "token")
 		if resp != nil {
 			t.Fatalf("expected no response for oversized body, got %#v", resp)
 		}
@@ -391,7 +391,7 @@ func TestHTTPClientRejectsCleartextRemoteBaseURLAtRequestBoundary(t *testing.T) 
 		BaseURL: "http://api.example.com",
 	}, nil)
 
-	if _, err := httpClient.GET("/test", nil, "sensitive-token"); err == nil || !strings.Contains(err.Error(), "must use HTTPS") {
+	if _, err := httpClient.GET(context.Background(), "/test", nil, "sensitive-token"); err == nil || !strings.Contains(err.Error(), "must use HTTPS") {
 		t.Fatalf("expected request boundary to reject remote cleartext BaseURL, got %v", err)
 	}
 }

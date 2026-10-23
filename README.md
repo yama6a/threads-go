@@ -294,6 +294,8 @@ config := &threads.Config{
 
 To send requests through your own transport, such as a per-account proxy, set `HTTPClient`. The library uses it as given for every request, including the token endpoints. `HTTPTimeout` does not apply to it, so set the client's own `Timeout` if you need one.
 
+Every request carries the context passed to the client method. Cancelling it stops the request, and the transport can read values from it.
+
 ```go
 config.HTTPClient = &http.Client{
     Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)},
